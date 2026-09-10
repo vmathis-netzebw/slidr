@@ -511,6 +511,45 @@ button {
   stroke-dasharray: 10 8;
 }
 
+.chart__median {
+  stroke: #c792ea;
+  stroke-width: 3;
+}
+
+.chart__legend {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  color: var(--dark-muted);
+  font-size: clamp(0.9rem, 1.2vw, 1.1rem);
+}
+
+.chart__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chart__legend-swatch {
+  width: 2rem;
+  height: 0;
+  border-top-width: 3px;
+  border-top-style: solid;
+}
+
+.chart__legend-swatch--average {
+  border-top-style: dashed;
+  border-top-color: #ffd166;
+}
+
+.chart__legend-swatch--median {
+  border-top-color: #c792ea;
+}
+
 .chart__axis {
   stroke: rgba(139, 147, 167, 0.6);
   stroke-width: 2;

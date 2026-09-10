@@ -118,6 +118,16 @@ export function DistributionChart({
             ))
           : null}
 
+        {stats.median !== null ? (
+          <line
+            x1={xForValue(stats.median)}
+            x2={xForValue(stats.median)}
+            y1={PADDING_TOP}
+            y2={baselineY}
+            className="chart__median"
+          />
+        ) : null}
+
         {stats.average !== null ? (
           <line
             x1={xForValue(stats.average)}
@@ -146,6 +156,17 @@ export function DistributionChart({
         ))}
       </svg>
 
+      <ul className="chart__legend">
+        <li className="chart__legend-item">
+          <span className="chart__legend-swatch chart__legend-swatch--average" aria-hidden="true" />
+          Durchschnitt {formatMarker(stats.average)}
+        </li>
+        <li className="chart__legend-item">
+          <span className="chart__legend-swatch chart__legend-swatch--median" aria-hidden="true" />
+          Median {formatMarker(stats.median)}
+        </li>
+      </ul>
+
       <div className="chart__poles">
         <span>{leftLabel}</span>
         <span>{rightLabel}</span>
@@ -172,6 +193,11 @@ export function binHistogram(histogram: readonly number[], bins: number): number
     result[index] = (result[index] ?? 0) + count;
   }
   return result;
+}
+
+function formatMarker(value: number | null): string {
+  if (value === null) return '–';
+  return value.toLocaleString('de-DE', { maximumFractionDigits: 1 });
 }
 
 function expandValues(histogram: readonly number[]): number[] {
