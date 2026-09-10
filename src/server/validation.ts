@@ -1,4 +1,5 @@
 import {
+  POLE_LABEL_MAX_LENGTH,
   QUESTION_MAX_LENGTH,
   RESPONSE_ID_PATTERN,
   SESSION_ID_PATTERN,
@@ -18,6 +19,23 @@ export function isValidResponseId(value: unknown): value is string {
 
 function isOptionalQuestion(value: unknown): boolean {
   return value === undefined || (typeof value === 'string' && value.length <= QUESTION_MAX_LENGTH * 4);
+}
+
+function isOptionalPoleLabel(value: unknown): boolean {
+  return (
+    value === undefined || (typeof value === 'string' && value.length <= POLE_LABEL_MAX_LENGTH * 4)
+  );
+}
+
+/** Übernimmt nur tatsächlich gesetzte Label-Felder, damit `undefined` "unverändert" bedeutet. */
+function poleLabelsOf(message: Record<string, unknown>): {
+  leftLabel?: string;
+  rightLabel?: string;
+} {
+  return {
+    ...(typeof message.leftLabel === 'string' ? { leftLabel: message.leftLabel } : {}),
+    ...(typeof message.rightLabel === 'string' ? { rightLabel: message.rightLabel } : {}),
+  };
 }
 
 /**
@@ -42,26 +60,32 @@ export function parseClientMessage(raw: string): ClientMessage | null {
     case 'presenter:hello':
       if (message.sessionId !== undefined && !isValidSessionId(message.sessionId)) return null;
       if (!isOptionalQuestion(message.question)) return null;
+      if (!isOptionalPoleLabel(message.leftLabel) || !isOptionalPoleLabel(message.rightLabel)) return null;
       return {
         type: 'presenter:hello',
         ...(typeof message.sessionId === 'string' ? { sessionId: message.sessionId } : {}),
         ...(typeof message.question === 'string' ? { question: message.question } : {}),
+        ...poleLabelsOf(message),
       };
 
     case 'presenter:new-session':
       if (!isOptionalQuestion(message.question)) return null;
+      if (!isOptionalPoleLabel(message.leftLabel) || !isOptionalPoleLabel(message.rightLabel)) return null;
       return {
         type: 'presenter:new-session',
         ...(typeof message.question === 'string' ? { question: message.question } : {}),
+        ...poleLabelsOf(message),
       };
 
     case 'presenter:update-question':
       if (!isValidSessionId(message.sessionId)) return null;
       if (typeof message.question !== 'string' || !isOptionalQuestion(message.question)) return null;
+      if (!isOptionalPoleLabel(message.leftLabel) || !isOptionalPoleLabel(message.rightLabel)) return null;
       return {
         type: 'presenter:update-question',
         sessionId: message.sessionId,
         question: message.question,
+        ...poleLabelsOf(message),
       };
 
     case 'presenter:clear-responses':

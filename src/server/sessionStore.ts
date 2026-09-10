@@ -1,6 +1,9 @@
 import { randomInt } from 'node:crypto';
 import {
+  DEFAULT_LEFT_LABEL,
+  DEFAULT_RIGHT_LABEL,
   MAX_RESPONSES_PER_SESSION,
+  POLE_LABEL_MAX_LENGTH,
   QUESTION_MAX_LENGTH,
   SESSION_ID_LENGTH,
   VALUE_MAX,
@@ -14,7 +17,7 @@ import { computeStats, emptyStats } from '../shared/stats.js';
 /** Ohne I, O, 0, 1 – damit die Session-ID vorlesbar und abtippbar bleibt. */
 const ID_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-export const DEFAULT_QUESTION = 'Wie stark stimmst du zu?';
+export const DEFAULT_QUESTION = 'Entwickeln oder Customizen?';
 
 /** Sessions ohne Aktivität werden nach dieser Zeit verworfen. */
 export const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -22,11 +25,21 @@ export const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 export interface Session {
   id: string;
   question: string;
+  /** Linker Pol des Sliders (Wert 0). */
+  leftLabel: string;
+  /** Rechter Pol des Sliders (Wert 100). */
+  rightLabel: string;
   createdAt: number;
   lastActivityAt: number;
   resultsVisible: boolean;
   /** responseId -> value */
   responses: Map<string, number>;
+}
+
+export interface SessionSetup {
+  question?: string;
+  leftLabel?: string;
+  rightLabel?: string;
 }
 
 export type SubmitResult =
@@ -41,12 +54,15 @@ export class SessionStore {
     private readonly now: () => number = Date.now,
   ) {}
 
-  createSession(question?: string): Session {
+  createSession(setup: SessionSetup | string = {}): Session {
+    const options: SessionSetup = typeof setup === 'string' ? { question: setup } : setup;
     const id = this.generateSessionId();
     const timestamp = this.now();
     const session: Session = {
       id,
-      question: normalizeQuestion(question) || DEFAULT_QUESTION,
+      question: normalizeQuestion(options.question) || DEFAULT_QUESTION,
+      leftLabel: normalizePoleLabel(options.leftLabel) || DEFAULT_LEFT_LABEL,
+      rightLabel: normalizePoleLabel(options.rightLabel) || DEFAULT_RIGHT_LABEL,
       createdAt: timestamp,
       lastActivityAt: timestamp,
       resultsVisible: true,
@@ -71,10 +87,18 @@ export class SessionStore {
     return this.sessions.size;
   }
 
-  updateQuestion(sessionId: string, question: string): Session | undefined {
+  updateQuestion(sessionId: string, setup: SessionSetup): Session | undefined {
     const session = this.getSession(sessionId);
     if (!session) return undefined;
-    session.question = normalizeQuestion(question) || DEFAULT_QUESTION;
+    if (setup.question !== undefined) {
+      session.question = normalizeQuestion(setup.question) || DEFAULT_QUESTION;
+    }
+    if (setup.leftLabel !== undefined) {
+      session.leftLabel = normalizePoleLabel(setup.leftLabel) || DEFAULT_LEFT_LABEL;
+    }
+    if (setup.rightLabel !== undefined) {
+      session.rightLabel = normalizePoleLabel(setup.rightLabel) || DEFAULT_RIGHT_LABEL;
+    }
     return session;
   }
 
@@ -99,6 +123,8 @@ export class SessionStore {
     if (!session) return undefined;
     session.responses.clear();
     session.question = DEFAULT_QUESTION;
+    session.leftLabel = DEFAULT_LEFT_LABEL;
+    session.rightLabel = DEFAULT_RIGHT_LABEL;
     session.resultsVisible = true;
     return session;
   }
@@ -130,6 +156,8 @@ export class SessionStore {
     return {
       sessionId: session.id,
       question: session.question,
+      leftLabel: session.leftLabel,
+      rightLabel: session.rightLabel,
       createdAt: session.createdAt,
       resultsVisible: session.resultsVisible,
       stats: computeStats([...session.responses.values()]),
@@ -143,6 +171,8 @@ export class SessionStore {
     return {
       sessionId: session.id,
       question: session.question,
+      leftLabel: session.leftLabel,
+      rightLabel: session.rightLabel,
       hasVoted: value !== undefined,
       value: value ?? null,
       full: session.responses.size >= this.maxResponses,
@@ -186,4 +216,9 @@ export function isValidValue(value: unknown): value is number {
 export function normalizeQuestion(question: unknown): string {
   if (typeof question !== 'string') return '';
   return question.replace(/\s+/g, ' ').trim().slice(0, QUESTION_MAX_LENGTH);
+}
+
+export function normalizePoleLabel(label: unknown): string {
+  if (typeof label !== 'string') return '';
+  return label.replace(/\s+/g, ' ').trim().slice(0, POLE_LABEL_MAX_LENGTH);
 }

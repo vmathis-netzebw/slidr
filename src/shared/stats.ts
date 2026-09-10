@@ -45,7 +45,10 @@ export function computeMedian(sorted: readonly number[]): number | null {
 }
 
 /** Ab dieser Anzahl Antworten wird eine geglättete Dichtekurve gezeichnet. */
-export const DENSITY_MIN_SAMPLES = 5;
+export const DENSITY_MIN_SAMPLES = 1;
+
+/** Ab dieser Anzahl gilt die Verteilung als halbwegs belastbar; darunter wird ein Hinweis gezeigt. */
+export const ROBUST_MIN_SAMPLES = 5;
 
 export interface DensityPoint {
   x: number;
@@ -90,7 +93,11 @@ export function computeDensity(
   return points.map((p) => ({ x: p.x, y: p.y / maxY }));
 }
 
-/** Silverman's rule of thumb, nach unten begrenzt, damit die Kurve nicht zu Spikes zerfällt. */
+/** Untergrenze verhindert Spikes, Obergrenze verhindert, dass zwei Lager zu einem Berg verschmelzen. */
+export const MIN_BANDWIDTH = 6;
+export const MAX_BANDWIDTH = 14;
+
+/** Silverman's rule of thumb, auf einen für 0..100 sinnvollen Bereich begrenzt. */
 export function silvermanBandwidth(values: readonly number[]): number {
   const n = values.length;
   const mean = values.reduce((acc, v) => acc + v, 0) / n;
@@ -102,7 +109,7 @@ export function silvermanBandwidth(values: readonly number[]): number {
   const spread = iqr > 0 ? Math.min(stdDev, iqr / 1.349) : stdDev;
 
   const bandwidth = 0.9 * (spread || stdDev) * Math.pow(n, -1 / 5);
-  return Math.max(bandwidth, 2.5);
+  return Math.min(Math.max(bandwidth, MIN_BANDWIDTH), MAX_BANDWIDTH);
 }
 
 /** Lineare Interpolation; erwartet eine aufsteigend sortierte Liste. */

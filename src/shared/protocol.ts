@@ -12,7 +12,17 @@ export const SESSION_ID_PATTERN = /^[A-HJ-NP-Z2-9]{8,12}$/;
 export const RESPONSE_ID_PATTERN = /^[a-z0-9]{16,64}$/;
 
 export const QUESTION_MAX_LENGTH = 200;
+export const POLE_LABEL_MAX_LENGTH = 24;
 export const MAX_RESPONSES_PER_SESSION = 10_000;
+
+/** Der Slider ist ein Gegensatzpaar: linker Pol = Wert 0, rechter Pol = Wert 100. */
+export const DEFAULT_LEFT_LABEL = 'Entwickeln';
+export const DEFAULT_RIGHT_LABEL = 'Customizen';
+
+export interface PoleLabels {
+  leftLabel: string;
+  rightLabel: string;
+}
 
 export type PresenterRole = 'presenter';
 export type VoterRole = 'voter';
@@ -28,7 +38,7 @@ export interface SessionStats {
   histogram: number[];
 }
 
-export interface PresenterSessionState {
+export interface PresenterSessionState extends PoleLabels {
   sessionId: string;
   question: string;
   createdAt: number;
@@ -36,7 +46,7 @@ export interface PresenterSessionState {
   stats: SessionStats;
 }
 
-export interface VoterSessionState {
+export interface VoterSessionState extends PoleLabels {
   sessionId: string;
   question: string;
   /** Hat dieser Browser (responseId) bereits abgestimmt? */
@@ -54,12 +64,16 @@ export interface PresenterHelloMessage {
   /** Beim ersten Start leer -> Server erzeugt eine neue Session. */
   sessionId?: string;
   question?: string;
+  leftLabel?: string;
+  rightLabel?: string;
 }
 
 export interface PresenterUpdateQuestionMessage {
   type: 'presenter:update-question';
   sessionId: string;
   question: string;
+  leftLabel?: string;
+  rightLabel?: string;
 }
 
 export interface PresenterClearResponsesMessage {
@@ -75,6 +89,8 @@ export interface PresenterResetSessionMessage {
 export interface PresenterNewSessionMessage {
   type: 'presenter:new-session';
   question?: string;
+  leftLabel?: string;
+  rightLabel?: string;
 }
 
 export interface PresenterSetResultsVisibleMessage {
