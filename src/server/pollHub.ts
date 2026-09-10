@@ -43,7 +43,8 @@ export class PollHub {
   ) {
     const now = options.now ?? Date.now;
     this.messageLimiter = new RateLimiter(options.messageBurst ?? 40, options.messagesPerSecond ?? 8, now);
-    this.voteLimiter = new RateLimiter(options.voteBurst ?? 12, options.votesPerSecond ?? 0.5, now);
+    // Korrekturen im Änderungsfenster erzeugen mehrere Abgaben pro Teilnehmer.
+    this.voteLimiter = new RateLimiter(options.voteBurst ?? 30, options.votesPerSecond ?? 1, now);
   }
 
   get connectionCount(): number {
@@ -294,7 +295,7 @@ function errorTextFor(reason: 'session-not-found' | 'already-voted' | 'session-f
     case 'session-not-found':
       return 'Diese Umfrage ist nicht (mehr) aktiv.';
     case 'already-voted':
-      return 'Du hast bereits abgestimmt.';
+      return 'Die Zeit zum Ändern deiner Antwort ist abgelaufen.';
     case 'session-full':
       return 'Diese Umfrage nimmt keine weiteren Antworten an.';
     case 'invalid-value':

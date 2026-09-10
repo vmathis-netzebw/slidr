@@ -15,6 +15,9 @@ export const QUESTION_MAX_LENGTH = 200;
 export const POLE_LABEL_MAX_LENGTH = 24;
 export const MAX_RESPONSES_PER_SESSION = 10_000;
 
+/** So lange nach der ersten Abgabe darf ein Teilnehmer seinen Wert noch korrigieren. */
+export const VOTE_EDIT_WINDOW_MS = 2 * 60 * 1000;
+
 /** Der Slider ist ein Gegensatzpaar: linker Pol = Wert 0, rechter Pol = Wert 100. */
 export const DEFAULT_LEFT_LABEL = 'Entwickeln';
 export const DEFAULT_RIGHT_LABEL = 'Customizen';
@@ -53,6 +56,8 @@ export interface VoterSessionState extends PoleLabels {
   hasVoted: boolean;
   /** Zuvor abgegebener Wert, falls vorhanden. */
   value: number | null;
+  /** Restzeit in ms, in der die Antwort noch geändert werden darf (0 = gesperrt). Relativ, damit die Uhr des Clients egal ist. */
+  editableForMs: number;
   /** Session nimmt keine weiteren Antworten an (Limit erreicht). */
   full: boolean;
 }

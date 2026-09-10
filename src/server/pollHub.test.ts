@@ -85,7 +85,7 @@ describe('PollHub – Abstimmen', () => {
     expect(store.getStats(sessionId).count).toBe(1);
   });
 
-  it('lehnt eine doppelte responseId ab und meldet den bestehenden Zustand', () => {
+  it('erlaubt eine Korrektur im Änderungsfenster, ohne die Antwortzahl zu erhöhen', () => {
     const { sessionId } = startPresenter();
     const voter = new FakeConnection();
     const voterState = hub.addConnection(voter, 'voter-1');
@@ -95,9 +95,33 @@ describe('PollHub – Abstimmen', () => {
     voter.clear();
     send(hub, voterState, { type: 'voter:submit', sessionId, responseId, value: 90 });
 
+    expect(voter.last('voter:accepted')?.value).toBe(90);
+    expect(voter.last('voter:state')?.state.value).toBe(90);
+    expect(store.getStats(sessionId).count).toBe(1);
+    expect(store.getStats(sessionId).average).toBe(90);
+  });
+
+  it('lehnt eine Änderung nach Ablauf des Fensters ab und meldet den bestehenden Zustand', () => {
+    let now = 1_000_000;
+    const expiringStore = new SessionStore(10_000, () => now, 120_000);
+    const expiringHub = new PollHub(expiringStore, { voteBurst: 1000, messageBurst: 1000 });
+    const presenter = new FakeConnection();
+    const presenterState = expiringHub.addConnection(presenter, 'presenter-ip');
+    send(expiringHub, presenterState, { type: 'presenter:new-session', question: 'Frage?' });
+    const sessionId = presenter.last('presenter:state')!.state.sessionId;
+
+    const voter = new FakeConnection();
+    const voterState = expiringHub.addConnection(voter, 'voter-1');
+    const responseId = 'b'.repeat(16);
+
+    send(expiringHub, voterState, { type: 'voter:submit', sessionId, responseId, value: 20 });
+    now += 120_001;
+    voter.clear();
+    send(expiringHub, voterState, { type: 'voter:submit', sessionId, responseId, value: 90 });
+
     expect(voter.last('error')?.code).toBe('already-voted');
     expect(voter.last('voter:state')?.state.value).toBe(20);
-    expect(store.getStats(sessionId).count).toBe(1);
+    expect(expiringStore.getStats(sessionId).count).toBe(1);
   });
 
   it('lehnt ungültige Werte ab, ohne die Session zu verändern', () => {

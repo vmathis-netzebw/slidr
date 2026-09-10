@@ -56,18 +56,69 @@ describe('SessionStore – Antworten speichern', () => {
     expect(store.getStats(session.id).count).toBe(1);
   });
 
-  it('lehnt eine doppelte responseId ab', () => {
-    const store = new SessionStore();
+  it('erlaubt eine Korrektur innerhalb des Änderungsfensters', () => {
+    let now = 1_000_000;
+    const store = new SessionStore(10_000, () => now, 120_000);
     const session = store.createSession();
     const responseId = 'b'.repeat(16);
+
     expect(store.submitResponse(session.id, responseId, 10).ok).toBe(true);
+    now += 119_000;
+    expect(store.submitResponse(session.id, responseId, 90)).toEqual({
+      ok: true,
+      value: 90,
+      changed: true,
+    });
+
+    const stats = store.getStats(session.id);
+    expect(stats.count).toBe(1);
+    expect(stats.average).toBe(90);
+  });
+
+  it('meldet changed:false, wenn der Wert gleich bleibt', () => {
+    const store = new SessionStore();
+    const session = store.createSession();
+    const responseId = 'e'.repeat(16);
+    store.submitResponse(session.id, responseId, 42);
+    expect(store.submitResponse(session.id, responseId, 42)).toEqual({
+      ok: true,
+      value: 42,
+      changed: false,
+    });
+  });
+
+  it('lehnt eine Korrektur nach Ablauf des Änderungsfensters ab', () => {
+    let now = 1_000_000;
+    const store = new SessionStore(10_000, () => now, 120_000);
+    const session = store.createSession();
+    const responseId = 'b'.repeat(16);
+
+    expect(store.submitResponse(session.id, responseId, 10).ok).toBe(true);
+    now += 120_001;
     expect(store.submitResponse(session.id, responseId, 90)).toEqual({
       ok: false,
       reason: 'already-voted',
     });
+
     const stats = store.getStats(session.id);
     expect(stats.count).toBe(1);
     expect(stats.average).toBe(10);
+  });
+
+  it('verlängert das Änderungsfenster nicht durch eine Korrektur', () => {
+    let now = 1_000_000;
+    const store = new SessionStore(10_000, () => now, 120_000);
+    const session = store.createSession();
+    const responseId = 'f'.repeat(16);
+
+    store.submitResponse(session.id, responseId, 10);
+    now += 60_000;
+    expect(store.submitResponse(session.id, responseId, 20).ok).toBe(true);
+    now += 61_000;
+    expect(store.submitResponse(session.id, responseId, 30)).toEqual({
+      ok: false,
+      reason: 'already-voted',
+    });
   });
 
   it('lehnt ungültige Werte ab', () => {
@@ -169,7 +220,8 @@ describe('SessionStore – Reset', () => {
 
 describe('SessionStore – Zustände', () => {
   it('meldet dem Teilnehmer den bereits abgegebenen Wert', () => {
-    const store = new SessionStore();
+    let now = 1_000_000;
+    const store = new SessionStore(10_000, () => now, 120_000);
     const session = store.createSession('Frage?');
     const responseId = 'd'.repeat(16);
 
@@ -180,6 +232,7 @@ describe('SessionStore – Zustände', () => {
       rightLabel: DEFAULT_RIGHT_LABEL,
       hasVoted: false,
       value: null,
+      editableForMs: 120_000,
       full: false,
     });
 
@@ -187,7 +240,14 @@ describe('SessionStore – Zustände', () => {
     expect(store.getVoterState(session.id, responseId)).toMatchObject({
       hasVoted: true,
       value: 33,
+      editableForMs: 120_000,
     });
+
+    now += 90_000;
+    expect(store.getVoterState(session.id, responseId)?.editableForMs).toBe(30_000);
+
+    now += 30_000;
+    expect(store.getVoterState(session.id, responseId)?.editableForMs).toBe(0);
   });
 
   it('entfernt abgelaufene Sessions', () => {
