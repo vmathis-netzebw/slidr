@@ -1,0 +1,7 @@
+# Nur lokal: wird von `docker compose up` automatisch geladen, von Coolify nicht.
+services:
+  live-poll:
+    environment:
+      TRUST_PROXY: "false"
+    ports:
+      - "3000:3000"

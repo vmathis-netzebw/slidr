@@ -72,12 +72,12 @@ docker run --rm -p 3000:3000 -e PORT=3000 live-poll
 Oder mit Compose für die lokale Entwicklung:
 
 ```bash
-mkdir -p data
 docker compose up --build
 ```
 
-Die Feedback-Datenbank liegt per Bind-Mount in `./data/feedback.sqlite` auf dem Host und bleibt
-bei Rebuilds und auch bei `docker compose down -v` erhalten.
+`docker-compose.override.yaml` wird lokal automatisch geladen und veröffentlicht Port 3000. Die
+Feedback-Datenbank liegt im Named Volume `live-poll-data` und bleibt bei Rebuilds erhalten
+(`docker compose down -v` löscht sie).
 
 Das Image ist ein Multi-Stage-Build: Der Build-Stage kompiliert Client und Server, der Runtime-Stage
 enthält nur Produktionsabhängigkeiten. Das Entrypoint-Skript übergibt beim Start `/app/data` an den
@@ -88,15 +88,13 @@ Named Volumes als auch Bind-Mounts, deren Host-Ordner root gehört. Ein Healthch
 
 1. Repository zu GitHub/GitLab pushen.
 2. In Coolify **New Resource → Application → Public/Private Repository** wählen.
-3. Build Pack: **Dockerfile** (Coolify erkennt das `Dockerfile` im Repo-Root automatisch).
-4. **Port** auf `3000` setzen. Coolify injiziert `PORT`; der Server liest ihn aus und lauscht immer
-   auf `0.0.0.0`.
-5. Domain eintragen, z.B. `https://umfrage.example.de`. Coolify beantragt automatisch ein
-   Let's-Encrypt-Zertifikat.
-6. Optional die Environment-Variable `PUBLIC_URL=https://umfrage.example.de` setzen (siehe unten).
-7. Unter **Storages** ein Persistent Volume (oder Directory Mount) auf `/app/data` anlegen,
-   sonst geht die Feedback-Datenbank beim Redeploy verloren.
-8. **Deploy** klicken.
+3. Build Pack: **Docker Compose**, Compose-Datei `/docker-compose.yaml`. Die
+   `docker-compose.override.yaml` ist nur für lokal und wird von Coolify ignoriert.
+4. Beim Service `live-poll` die Domain mit Port eintragen, z.B. `https://umfrage.example.de:3000`
+   (der Port ist der Container-Port; Coolify beantragt automatisch ein Let's-Encrypt-Zertifikat).
+5. Optional die Environment-Variable `PUBLIC_URL=https://umfrage.example.de` setzen (siehe unten).
+6. **Deploy** klicken. Das Volume `live-poll-data` für `/app/data` legt Coolify aus der
+   Compose-Datei an; es bleibt bei Redeploys erhalten.
 
 Ein Healthcheck-Endpunkt steht unter `/healthz` bereit und liefert
 `{"ok":true,"sessions":n,"connections":n}`.
@@ -218,8 +216,8 @@ Gerät.
 
 **Speicherung:** Feedback-Bögen liegen im Gegensatz zu Live-Umfragen in einer SQLite-Datenbank
 (`DATA_DIR/feedback.sqlite`, eingebautes `node:sqlite`, WAL-Modus). Schreibzugriffe laufen in
-Transaktionen, parallele Antworten sind dadurch sicher. In Coolify unter **Storages** ein Persistent
-Volume auf `/app/data` anlegen, sonst gehen die Daten beim Redeploy verloren. Backup: die Datei im
+Transaktionen, parallele Antworten sind dadurch sicher. Die Daten liegen im Volume `live-poll-data`
+(in Coolify unter **Storages** sichtbar) und überstehen Redeploys. Backup: die Datei im
 laufenden Betrieb z.B. mit `sqlite3 feedback.sqlite ".backup backup.sqlite"` sichern. Das Passwort
 wird nur als scrypt-Hash gespeichert und ist nicht wiederherstellbar; Passwort-Versuche sind pro
 Client und Bogen gedrosselt.
