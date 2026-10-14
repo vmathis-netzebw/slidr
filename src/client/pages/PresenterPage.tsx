@@ -7,10 +7,11 @@ import {
   type PresenterSessionState,
   type ServerMessage,
 } from '../../shared/protocol.js';
-import { DEFAULT_THEME, parseTheme, type Theme } from '../../shared/theme.js';
+import { DEFAULT_THEME, LEGACY_DEFAULT_THEME, parseTheme, sameColors, type Theme } from '../../shared/theme.js';
 import { ConnectionBadge } from '../components/ConnectionBadge.js';
+import { Logo } from '../components/Logo.js';
 import { ThemeEditor } from '../components/ThemeEditor.js';
-import { themeStyle } from '../lib/themeStyle.js';
+import { presenterThemeStyle } from '../lib/themeStyle.js';
 import { DistributionChart } from '../components/DistributionChart.js';
 import { QrCode } from '../components/QrCode.js';
 import { fetchPublicOrigin, voteUrlFor } from '../lib/publicUrl.js';
@@ -23,7 +24,13 @@ const THEME_STORAGE_KEY = 'live-poll:last-theme';
 
 function readStoredTheme(): Theme {
   try {
-    return parseTheme(JSON.parse(readStored(THEME_STORAGE_KEY, 'null'))) ?? { ...DEFAULT_THEME };
+    const stored = parseTheme(JSON.parse(readStored(THEME_STORAGE_KEY, 'null')));
+    if (!stored) return { ...DEFAULT_THEME };
+    // Alte Standardfarben nicht festhalten, sondern auf das EnBW-CI umstellen.
+    if (sameColors(stored, LEGACY_DEFAULT_THEME)) {
+      return { ...DEFAULT_THEME, ...(stored.logo ? { logo: stored.logo } : {}) };
+    }
+    return stored;
   } catch {
     return { ...DEFAULT_THEME };
   }
@@ -99,7 +106,7 @@ export function PresenterPage(): JSX.Element {
 
   if (!started || !state) {
     return (
-      <main className="presenter presenter--setup" style={themeStyle(theme)}>
+      <main className="presenter presenter--setup" style={presenterThemeStyle(theme)}>
         <header className="presenter__topbar">
           <h1>Live-Umfrage</h1>
           <ConnectionBadge status={status} />
@@ -166,8 +173,9 @@ export function PresenterPage(): JSX.Element {
   const stats = state.stats;
 
   return (
-    <main className="presenter" style={themeStyle(state.theme)}>
+    <main className="presenter" style={presenterThemeStyle(state.theme)}>
       <header className="presenter__header">
+        <Logo theme={state.theme} className="logo--presenter" />
         <h1 className="presenter__question">{state.question}</h1>
         <div className="presenter__count">
           <strong>{stats.count}</strong>

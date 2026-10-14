@@ -11,6 +11,7 @@ import {
 import { ApiError, feedbackApi } from '../lib/feedbackApi.js';
 import { getOrCreateResponseId } from '../lib/responseId.js';
 import { themeStyle } from '../lib/themeStyle.js';
+import { Logo } from '../components/Logo.js';
 
 /** Kurz warten, damit die Auswahl sichtbar ist, bevor die nächste Frage kommt. */
 const AUTO_ADVANCE_MS = 350;
@@ -166,6 +167,7 @@ export function FeedbackRespondPage({ feedbackId }: { feedbackId: string }): JSX
   const question = questions[current];
   return (
     <main className="page page--form" style={style}>
+      <Logo theme={definition.theme} className="logo--page" />
       <h1>{definition.title}</h1>
       {definition.description && current === 0 ? (
         <p className="page__lead page__pre">{definition.description}</p>

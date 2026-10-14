@@ -1,8 +1,8 @@
 :root {
-  --accent: #2f6df6;
-  --accent-dark: #5ac8fa;
+  --accent: #000099;
+  --accent-dark: #ff9900;
   --on-accent: #fff;
-  --tertiary: #ffd166;
+  --tertiary: #ffdd00;
   --dark-bg: #0b0d12;
   --dark-panel: #141822;
   --dark-text: #f5f7fa;
@@ -545,7 +545,7 @@ button {
 
 .chart__legend-swatch--average {
   border-top-style: dashed;
-  border-top-color: #ffd166;
+  border-top-color: var(--tertiary);
 }
 
 .chart__legend-swatch--median {
@@ -981,6 +981,50 @@ button {
 .presenter .theme-editor__item,
 .presenter .theme-editor__item code {
   color: var(--dark-muted);
+}
+
+.theme-editor__logo {
+  display: flex;
+  flex-basis: 100%;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.theme-editor__logo-preview {
+  max-height: 48px;
+  max-width: 160px;
+  object-fit: contain;
+  padding: 4px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.theme-editor__error {
+  color: #c0392b;
+  font-weight: 600;
+}
+
+.logo {
+  display: block;
+  object-fit: contain;
+}
+
+.logo--presenter {
+  max-height: clamp(48px, 8vh, 96px);
+  max-width: 240px;
+}
+
+.logo--voter {
+  max-height: 56px;
+  max-width: 60%;
+  margin: 0 auto -0.5rem;
+}
+
+.logo--page {
+  max-height: 64px;
+  max-width: 220px;
+  margin-bottom: 0.75rem;
 }
 
 .choices {

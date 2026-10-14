@@ -42,8 +42,8 @@ describe('parseDefinition', () => {
   it('übernimmt CI-Farben, ergänzt fehlende und lehnt ungültige ab', () => {
     const base = { title: 'T', questions: [{ type: 'text', title: 'X' }] };
     const ok = parseDefinition({ ...base, theme: { primary: '#E2001A', secondary: '#abc' } });
-    expect(ok.ok && ok.value.theme).toEqual({ primary: '#e2001a', secondary: '#aabbcc', tertiary: '#ffd166' });
-    const defaults = parseDefinition({ ...base, theme: { primary: '#2f6df6' } });
+    expect(ok.ok && ok.value.theme).toEqual({ primary: '#e2001a', secondary: '#aabbcc', tertiary: '#ffdd00' });
+    const defaults = parseDefinition({ ...base, theme: { primary: '#000099' } });
     expect(defaults.ok && defaults.value.theme).toBeUndefined();
     expect(parseDefinition({ ...base, theme: { primary: 'red; background:url(x)' } }).ok).toBe(false);
   });

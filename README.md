@@ -209,6 +209,10 @@ theme:
 Fehlende Farben werden mit den Standardfarben ergänzt. Die Textfarbe auf der Primärfarbe wird
 automatisch für ausreichenden Kontrast gewählt.
 
+**Logo:** Im selben Editor (auch bei Live-Umfragen) lässt sich ein Logo hochladen (PNG, JPG, GIF,
+WebP, SVG, max. 512 KB). Es wird unter `DATA_DIR/logos/` gespeichert und im `theme` nur als ID
+referenziert (`logo: "<hash>.png"`).
+
 **Eine Antwort pro Gerät:** Jedes Gerät bekommt pro Bogen eine zufällige, anonyme ID im
 localStorage. Darüber gibt es genau eine Antwort, die später geändert werden kann („Antwort
 ändern“), solange der Bogen offen ist. Ein anderer Browser oder ein privates Fenster zählt als neues

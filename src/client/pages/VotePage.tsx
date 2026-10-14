@@ -8,6 +8,7 @@ import {
   type ServerMessage,
   type VoterSessionState,
 } from '../../shared/protocol.js';
+import { Logo } from '../components/Logo.js';
 import { getOrCreateResponseId } from '../lib/responseId.js';
 import { themeStyle } from '../lib/themeStyle.js';
 import { usePollSocket, type SendMessage } from '../lib/usePollSocket.js';
@@ -148,6 +149,7 @@ export function VotePage({ sessionId }: VotePageProps): JSX.Element {
 
   return (
     <main className="voter" style={style}>
+      <Logo theme={state?.theme} className="logo--voter" />
       <h1 className="voter__question">{state?.question ?? 'Umfrage'}</h1>
 
       <div className="voter__value" aria-live="polite">

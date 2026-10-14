@@ -1,0 +1,109 @@
+# Feedback-Bogen SAP Developer Day 2025 (nach Mentimeter-Entwurf).
+# Import: Feedback erstellen → „Datei importieren“.
+version: 1
+title: SAP Developer Day 2025 – Feedback
+description: >-
+  Vielen Dank für deine Teilnahme am SAP Developer Day 2025! Um die
+  Veranstaltung noch besser zu machen, würden wir uns über dein Feedback freuen.
+theme:
+  primary: "#000099"
+  secondary: "#ff9900"
+  tertiary: "#ffdd00"
+questions:
+  - id: gesamt
+    type: slider
+    title: Wie hat dir der SAP Developer Day insgesamt gefallen?
+    leftLabel: gar nicht
+    rightLabel: sehr gut
+    required: true
+
+  # Mentimeter-Folie „Aspekte“ als einzelne Slider
+  - id: aspekt-organisation
+    type: slider
+    title: "Bewertung: Organisation"
+    description: Wie bewertest du den SAP Developer Day im Bezug auf folgende Aspekte?
+    leftLabel: Sehr schlecht
+    rightLabel: Sehr gut
+    required: true
+  - id: aspekt-relevanz
+    type: slider
+    title: "Bewertung: Inhaltliche Relevanz für den Arbeitsalltag"
+    leftLabel: Sehr schlecht
+    rightLabel: Sehr gut
+    required: true
+  - id: aspekt-informativ
+    type: slider
+    title: "Bewertung: Informativität der Inhalte"
+    leftLabel: Sehr schlecht
+    rightLabel: Sehr gut
+    required: true
+  - id: aspekt-qa
+    type: slider
+    title: "Bewertung: Möglichkeit zur Klärung von Fragen / Q&A"
+    leftLabel: Sehr schlecht
+    rightLabel: Sehr gut
+    required: true
+
+  - id: informativ
+    type: single
+    title: Wie informativ fandest du die Inhalte des Events?
+    options:
+      - Top informativ
+      - Mittelmäßig
+      - Wenig informativ
+    required: true
+
+  - id: organisation
+    type: slider
+    title: Wie würdest du die Organisation des Events bewerten?
+    leftLabel: Sehr schlecht
+    rightLabel: Sehr gut
+    required: true
+
+  - id: interaktion
+    type: slider
+    title: Wie empfandest du die Interaktion mit den anderen Teilnehmenden?
+    leftLabel: Sehr schlecht
+    rightLabel: Sehr gut
+    required: true
+
+  - id: relevanz
+    type: slider
+    title: Wie relevant waren die Inhalte für deinen individuellen Arbeitsbereich?
+    leftLabel: Irrelevant
+    rightLabel: Sehr relevant
+    required: true
+
+  # Ranking gibt es nicht – Lieblingssession als Einfachauswahl
+  - id: beste-session
+    type: single
+    title: Welche Session hat dir am besten gefallen?
+    options:
+      - Block 1
+      - Block 2
+      - Block 3
+    required: true
+
+  # NPS-Skala 0–10
+  - id: empfehlung
+    type: scale
+    title: >-
+      Wie wahrscheinlich ist es, dass du den SAP Developer Day einem Kollegen
+      oder einer Kollegin weiterempfehlen würdest?
+    min: 0
+    max: 10
+    minLabel: sehr unwahrscheinlich
+    maxLabel: Sehr wahrscheinlich
+    required: true
+
+  - id: themen
+    type: text
+    title: Gibt es (weitere) Themen, die du dir für zukünftige Developer Days wünschen würdest?
+    multiline: true
+    required: false
+
+  - id: verbesserung
+    type: text
+    title: Wie könnten wir den nächsten SAP Developer Day darüber hinaus noch besser gestalten?
+    multiline: true
+    required: false

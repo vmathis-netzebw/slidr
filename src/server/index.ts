@@ -6,7 +6,10 @@ import { dirname, join } from 'node:path';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { FeedbackApi } from './feedbackApi.js';
 import { FeedbackStore } from './feedbackStore.js';
+import { LogoStore } from './logoStore.js';
 import { PollHub } from './pollHub.js';
+import { RateLimiter } from './rateLimiter.js';
+import { LOGO_MAX_BYTES } from '../shared/theme.js';
 import { SessionStore, SESSION_TTL_MS } from './sessionStore.js';
 import { serveStatic } from './staticFiles.js';
 
@@ -29,6 +32,8 @@ const hub = new PollHub(store);
 mkdirSync(DATA_DIR, { recursive: true });
 const feedbackStore = new FeedbackStore(join(DATA_DIR, 'feedback.sqlite'));
 const feedbackApi = new FeedbackApi(feedbackStore, { clientKeyFor });
+const logoStore = new LogoStore(join(DATA_DIR, 'logos'));
+const logoUploadLimiter = new RateLimiter(20, 20 / 3600);
 
 const server = createServer((req, res) => {
   handleHttp(req, res).catch(() => {
@@ -128,6 +133,13 @@ async function handleHttp(req: IncomingMessage, res: ServerResponse): Promise<vo
     return;
   }
 
+  if (url.pathname === '/api/logos' || url.pathname.startsWith('/api/logos/')) {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    await handleLogos(req, res, url);
+    return;
+  }
+
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.writeHead(405, { 'Content-Type': 'text/plain; charset=utf-8', Allow: 'GET, HEAD' });
     res.end('Method Not Allowed');
@@ -175,6 +187,46 @@ async function handleHttp(req: IncomingMessage, res: ServerResponse): Promise<vo
 
   res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end('Not Found');
+}
+
+async function handleLogos(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
+  const sendJson = (status: number, body: unknown): void => {
+    res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify(body));
+  };
+
+  if (url.pathname === '/api/logos') {
+    if (req.method !== 'POST') return sendJson(405, { error: 'Methode nicht erlaubt.' });
+    // Nur image/*: einfache Cross-Site-Formulare können diesen Typ nicht ohne CORS-Preflight senden.
+    if (!(req.headers['content-type'] ?? '').toLowerCase().startsWith('image/')) {
+      return sendJson(415, { error: 'Bitte eine Bilddatei hochladen.' });
+    }
+    if (!logoUploadLimiter.tryConsume(clientKeyFor(req))) {
+      return sendJson(429, { error: 'Zu viele Uploads. Bitte später erneut.' });
+    }
+    const chunks: Buffer[] = [];
+    let size = 0;
+    for await (const chunk of req) {
+      size += (chunk as Buffer).length;
+      if (size > LOGO_MAX_BYTES) return sendJson(413, { error: 'Logo zu groß (max. 512 KB).' });
+      chunks.push(chunk as Buffer);
+    }
+    const id = await logoStore.save(Buffer.concat(chunks));
+    if (!id) return sendJson(400, { error: 'Format nicht unterstützt (PNG, JPG, GIF, WebP, SVG).' });
+    return sendJson(201, { id });
+  }
+
+  if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(405, { error: 'Methode nicht erlaubt.' });
+  const logo = await logoStore.read(url.pathname.slice('/api/logos/'.length));
+  if (!logo) return sendJson(404, { error: 'Logo nicht gefunden.' });
+  res.writeHead(200, {
+    'Content-Type': logo.contentType,
+    'Content-Length': String(logo.data.length),
+    'Cache-Control': 'public, max-age=31536000, immutable',
+    // SVGs dürfen beim direkten Aufruf kein Skript ausführen.
+    'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox",
+  });
+  res.end(req.method === 'HEAD' ? undefined : logo.data);
 }
 
 function safeUrl(req: IncomingMessage): URL | null {

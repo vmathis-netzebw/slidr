@@ -12,6 +12,7 @@ import { downloadDefinition, downloadText, slugify } from '../lib/definitionFile
 import { ApiError, feedbackApi, feedbackUrlFor } from '../lib/feedbackApi.js';
 import { fetchPublicOrigin } from '../lib/publicUrl.js';
 import { themeStyle } from '../lib/themeStyle.js';
+import { Logo } from '../components/Logo.js';
 import { FeedbackCreatePage } from './FeedbackCreatePage.js';
 
 export function FeedbackResultsPage({ feedbackId }: { feedbackId: string }): JSX.Element {
@@ -129,6 +130,7 @@ export function FeedbackResultsPage({ feedbackId }: { feedbackId: string }): JSX
     <main className="page" style={themeStyle(definition.theme)}>
       <header className="page__header">
         <div>
+          <Logo theme={definition.theme} className="logo--page" />
           <h1>{definition.title}</h1>
           <p className="page__lead">
             <strong>{view.responses.length}</strong> Antworten · erstellt am {new Date(view.createdAt).toLocaleDateString('de-DE')}
