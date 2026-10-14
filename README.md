@@ -72,8 +72,13 @@ docker run --rm -p 3000:3000 -e PORT=3000 live-poll
 Oder mit Compose für die lokale Entwicklung:
 
 ```bash
+mkdir -p data
 docker compose up --build
 ```
+
+Die Feedback-Datenbank liegt per Bind-Mount in `./data/feedback.sqlite` auf dem Host und bleibt
+bei Rebuilds und auch bei `docker compose down -v` erhalten. Der Container läuft mit
+`UID`/`GID` des Hosts (Standard 1000), damit er in `./data` schreiben darf.
 
 Das Image ist ein Multi-Stage-Build: Der Build-Stage kompiliert Client und Server, der Runtime-Stage
 enthält nur Produktionsabhängigkeiten und läuft als unprivilegierter Benutzer `node`. Ein
@@ -107,6 +112,7 @@ auf mehrere Instanzen skaliert werden – eine Instanz pro Deployment.
 | `PUBLIC_URL`      | –         | Öffentliche Basis-URL für QR-Code und Teilnehmerlink. Wenn leer: aktuelle Browser-URL. |
 | `TRUST_PROXY`     | `true`    | `X-Forwarded-For` auswerten. Hinter Traefik/Coolify auf `true` lassen.               |
 | `MAX_CONNECTIONS` | `5000`    | Obergrenze gleichzeitiger WebSocket-Verbindungen.                                    |
+| `DATA_DIR`        | `./data`  | Ablage für Feedback-Bögen. Im Image `/app/data` – als Volume persistieren.          |
 
 Vorlage: [.env.example](.env.example). Es werden keine Secrets benötigt.
 
@@ -138,6 +144,68 @@ Darstellung der Verteilung:
   eine Verteilung suggeriert.
 - **Ab 5 Antworten:** Histogramm plus geglättete Dichtekurve (Kerndichteschätzung). Die gestrichelte
   Linie markiert den Durchschnitt.
+
+## 6b. Asynchrones Feedback
+
+Neben der Live-Umfrage gibt es Feedback-Bögen mit mehreren Fragen, die unabhängig von einem
+geöffneten Presenter-Fenster beantwortet werden können.
+
+1. `/feedback/new` öffnen, Titel und Fragen anlegen, Passwort vergeben, veröffentlichen.
+2. Den Link `/f/<ID>` (oder QR-Code) verteilen.
+3. Ergebnisse unter `/f/<ID>/results` mit dem Passwort ansehen, als CSV/JSON exportieren, den Bogen
+   schließen oder löschen.
+
+Fragetypen: `text` (Freitext), `single` (Einfachauswahl), `multi` (Mehrfachauswahl), `scale`
+(ganzzahlige Skala, z.B. 1–5) und `slider` (0–100 zwischen zwei Polen).
+
+Fragen lassen sich als JSON oder YAML im- und exportieren. Fehlende `id`s werden vergeben, alle
+anderen Felder außer `type` und `title` sind optional:
+
+```yaml
+version: 1
+title: Workshop-Feedback
+description: Danke, dass du dir zwei Minuten nimmst.
+questions:
+  - type: scale
+    title: Wie zufrieden warst du insgesamt?
+    required: true
+    min: 1
+    max: 5
+    minLabel: gar nicht
+    maxLabel: sehr
+  - type: single
+    title: Wie war das Tempo?
+    options: [zu langsam, passend, zu schnell]
+  - type: multi
+    title: Was war hilfreich?
+    options: [Theorie, Übungen, Diskussion]
+  - type: slider
+    title: Entwickeln oder Customizen?
+    leftLabel: Entwickeln
+    rightLabel: Customizen
+  - type: text
+    title: Was sollen wir verbessern?
+    multiline: true
+```
+
+**Bearbeiten:** Auf der Ergebnisseite (nach Passwort-Eingabe) lassen sich die Fragen ändern. Jede
+Änderung wird als neue Version gespeichert; Antworten merken sich ihre Version. Die Auswertung zeigt
+standardmäßig die aktuellen Fragen mit allen Antworten, deren Frage in Typ und Optionen gleich
+geblieben ist (reine Textkorrekturen sind unkritisch). Einzelne Versionen lassen sich separat
+auswerten. Gelöschte Frage-IDs werden nie wiederverwendet.
+
+**Eine Antwort pro Gerät:** Jedes Gerät bekommt pro Bogen eine zufällige, anonyme ID im
+localStorage. Darüber gibt es genau eine Antwort, die später geändert werden kann („Antwort
+ändern“), solange der Bogen offen ist. Ein anderer Browser oder ein privates Fenster zählt als neues
+Gerät.
+
+**Speicherung:** Feedback-Bögen liegen im Gegensatz zu Live-Umfragen in einer SQLite-Datenbank
+(`DATA_DIR/feedback.sqlite`, eingebautes `node:sqlite`, WAL-Modus). Schreibzugriffe laufen in
+Transaktionen, parallele Antworten sind dadurch sicher. In Coolify unter **Storages** ein Persistent
+Volume auf `/app/data` anlegen, sonst gehen die Daten beim Redeploy verloren. Backup: die Datei im
+laufenden Betrieb z.B. mit `sqlite3 feedback.sqlite ".backup backup.sqlite"` sichern. Das Passwort
+wird nur als scrypt-Hash gespeichert und ist nicht wiederherstellbar; Passwort-Versuche sind pro
+Client und Bogen gedrosselt.
 
 ## 7. Wie der QR-Code funktioniert
 

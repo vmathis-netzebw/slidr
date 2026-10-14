@@ -11,5 +11,6 @@ npm-debug.log*
 .vscode
 .idea
 coverage
+data
 docker-compose.yml
 README.md

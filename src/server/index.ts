@@ -1,8 +1,11 @@
 import { createHmac, randomBytes } from 'node:crypto';
+import { mkdirSync } from 'node:fs';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { WebSocketServer, type WebSocket } from 'ws';
+import { FeedbackApi } from './feedbackApi.js';
+import { FeedbackStore } from './feedbackStore.js';
 import { PollHub } from './pollHub.js';
 import { SessionStore, SESSION_TTL_MS } from './sessionStore.js';
 import { serveStatic } from './staticFiles.js';
@@ -12,6 +15,7 @@ const HOST = process.env.HOST ?? '0.0.0.0';
 const PUBLIC_URL = normalizePublicUrl(process.env.PUBLIC_URL);
 const TRUST_PROXY = (process.env.TRUST_PROXY ?? 'true').toLowerCase() !== 'false';
 const MAX_CONNECTIONS = Number.parseInt(process.env.MAX_CONNECTIONS ?? '5000', 10);
+const DATA_DIR = process.env.DATA_DIR ?? join(process.cwd(), 'data');
 
 const moduleDir = dirname(fileURLToPath(import.meta.url));
 /** dist/node/server -> dist/client */
@@ -22,6 +26,9 @@ const IP_SALT = randomBytes(32);
 
 const store = new SessionStore();
 const hub = new PollHub(store);
+mkdirSync(DATA_DIR, { recursive: true });
+const feedbackStore = new FeedbackStore(join(DATA_DIR, 'feedback.sqlite'));
+const feedbackApi = new FeedbackApi(feedbackStore, { clientKeyFor });
 
 const server = createServer((req, res) => {
   handleHttp(req, res).catch(() => {
@@ -90,13 +97,18 @@ setInterval(() => {
 
 server.listen(PORT, HOST, () => {
   // eslint-disable-next-line no-console
-  console.log(`live-poll läuft auf http://${HOST}:${PORT} (PUBLIC_URL=${PUBLIC_URL ?? 'auto'})`);
+  console.log(
+    `live-poll läuft auf http://${HOST}:${PORT} (PUBLIC_URL=${PUBLIC_URL ?? 'auto'}, DATA_DIR=${DATA_DIR})`,
+  );
 });
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.on(signal, () => {
     wss.close();
-    server.close(() => process.exit(0));
+    server.close(() => {
+      feedbackStore.close();
+      process.exit(0);
+    });
     setTimeout(() => process.exit(0), 5000).unref();
   });
 }
@@ -106,6 +118,13 @@ async function handleHttp(req: IncomingMessage, res: ServerResponse): Promise<vo
   if (!url) {
     res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('Bad Request');
+    return;
+  }
+
+  if (url.pathname === '/api/feedback' || url.pathname.startsWith('/api/feedback/')) {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    await feedbackApi.handle(req, res, url);
     return;
   }
 
@@ -120,7 +139,14 @@ async function handleHttp(req: IncomingMessage, res: ServerResponse): Promise<vo
 
   if (url.pathname === '/healthz') {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end(JSON.stringify({ ok: true, sessions: store.size, connections: hub.connectionCount }));
+    res.end(
+      JSON.stringify({
+        ok: true,
+        sessions: store.size,
+        connections: hub.connectionCount,
+        feedbacks: feedbackStore.size,
+      }),
+    );
     return;
   }
 

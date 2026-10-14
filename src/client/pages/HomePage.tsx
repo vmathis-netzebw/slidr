@@ -6,6 +6,10 @@ export function HomePage(): JSX.Element {
       <a className="button button--primary" href="/presenter">
         Zur Präsentationsansicht
       </a>
+      <p>Oder sammle Feedback mit mehreren Fragen – asynchron, Ergebnisse passwortgeschützt.</p>
+      <a className="button" href="/feedback/new">
+        Feedback-Bogen erstellen
+      </a>
     </main>
   );
 }
