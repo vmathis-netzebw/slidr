@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   TEXT_ANSWER_MAX_LENGTH,
   parseAnswers,
@@ -12,6 +12,9 @@ import { ApiError, feedbackApi } from '../lib/feedbackApi.js';
 import { getOrCreateResponseId } from '../lib/responseId.js';
 import { themeStyle } from '../lib/themeStyle.js';
 
+/** Kurz warten, damit die Auswahl sichtbar ist, bevor die nächste Frage kommt. */
+const AUTO_ADVANCE_MS = 350;
+
 export function FeedbackRespondPage({ feedbackId }: { feedbackId: string }): JSX.Element {
   // Pro Gerät eine Antwort je Bogen; dieselbe ID erlaubt späteres Ändern.
   const responseId = useMemo(() => getOrCreateResponseId(`F${feedbackId}`), [feedbackId]);
@@ -22,6 +25,10 @@ export function FeedbackRespondPage({ feedbackId }: { feedbackId: string }): JSX
   const [busy, setBusy] = useState(false);
   const [hasOwn, setHasOwn] = useState(false);
   const [done, setDone] = useState(false);
+  const [step, setStep] = useState(0);
+  const advanceTimer = useRef<number | undefined>(undefined);
+
+  useEffect(() => () => window.clearTimeout(advanceTimer.current), []);
 
   useEffect(() => {
     const load = async (): Promise<void> => {
@@ -41,7 +48,31 @@ export function FeedbackRespondPage({ feedbackId }: { feedbackId: string }): JSX
     void load();
   }, [feedbackId, responseId]);
 
-  const setAnswer = (questionId: string, value: AnswerValue | undefined): void => {
+  const questions = feedback?.definition.questions ?? [];
+  const current = Math.min(step, Math.max(0, questions.length - 1));
+  const isLast = current >= questions.length - 1;
+
+  const goTo = (index: number): void => {
+    window.clearTimeout(advanceTimer.current);
+    setErrors([]);
+    setStep(Math.max(0, Math.min(index, questions.length - 1)));
+  };
+
+  const next = (): void => {
+    const question = questions[current];
+    if (question?.required && answers[question.id] === undefined) {
+      setErrors([`"${question.title}" ist eine Pflichtfrage.`]);
+      return;
+    }
+    goTo(current + 1);
+  };
+
+  const setAnswer = (questionId: string, value: AnswerValue | undefined, advance = false): void => {
+    window.clearTimeout(advanceTimer.current);
+    if (advance && value !== undefined && !isLast) {
+      advanceTimer.current = window.setTimeout(() => goTo(current + 1), AUTO_ADVANCE_MS);
+    }
+    setErrors([]);
     setAnswers((current) => {
       const next = { ...current };
       if (value === undefined) delete next[questionId];
@@ -54,6 +85,8 @@ export function FeedbackRespondPage({ feedbackId }: { feedbackId: string }): JSX
     if (!feedback) return;
     const parsed = parseAnswers(feedback.definition, answers);
     if (!parsed.ok) {
+      const missing = feedback.definition.questions.findIndex((q) => q.required && answers[q.id] === undefined);
+      if (missing >= 0) setStep(missing);
       setErrors(parsed.errors);
       return;
     }
@@ -88,7 +121,14 @@ export function FeedbackRespondPage({ feedbackId }: { feedbackId: string }): JSX
         </div>
         <h1>Danke für dein Feedback!</h1>
         {feedback && !feedback.closed ? (
-          <button type="button" className="button" onClick={() => setDone(false)}>
+          <button
+            type="button"
+            className="button"
+            onClick={() => {
+              setStep(0);
+              setDone(false);
+            }}
+          >
             Antwort ändern
           </button>
         ) : null}
@@ -123,21 +163,69 @@ export function FeedbackRespondPage({ feedbackId }: { feedbackId: string }): JSX
   }
 
   const { definition } = feedback;
+  const question = questions[current];
   return (
     <main className="page page--form" style={style}>
       <h1>{definition.title}</h1>
-      {definition.description ? <p className="page__lead page__pre">{definition.description}</p> : null}
+      {definition.description && current === 0 ? (
+        <p className="page__lead page__pre">{definition.description}</p>
+      ) : null}
 
-      {definition.questions.map((question, index) => (
+      <div className="stepper">
+        <span className="stepper__label">
+          Frage {current + 1} von {questions.length}
+        </span>
+        <div
+          className="stepper__track"
+          role="progressbar"
+          aria-valuemin={1}
+          aria-valuemax={questions.length}
+          aria-valuenow={current + 1}
+        >
+          <span className="stepper__fill" style={{ width: `${((current + 1) / questions.length) * 100}%` }} />
+        </div>
+      </div>
+
+      {question ? (
         <fieldset key={question.id} className="card question">
           <legend className="question__title">
-            {index + 1}. {question.title}
+            {current + 1}. {question.title}
             {question.required ? <span className="question__required"> *</span> : null}
           </legend>
           {question.description ? <p className="field__hint page__pre">{question.description}</p> : null}
-          <AnswerInput question={question} value={answers[question.id]} onChange={(v) => setAnswer(question.id, v)} />
+          <AnswerInput
+            question={question}
+            value={answers[question.id]}
+            onChange={(v) => setAnswer(question.id, v, question.type === 'single' || question.type === 'scale')}
+          />
         </fieldset>
-      ))}
+      ) : null}
+
+      <div className="stepper__nav">
+        <button
+          type="button"
+          className="button stepper__arrow"
+          aria-label="Vorherige Frage"
+          disabled={current === 0}
+          onClick={() => goTo(current - 1)}
+        >
+          ←
+        </button>
+        {isLast ? (
+          <button type="button" className="button button--primary stepper__submit" disabled={busy} onClick={() => void submit()}>
+            {busy ? 'Sende …' : hasOwn ? 'Antwort aktualisieren' : 'Feedback absenden'}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="button button--primary stepper__arrow"
+            aria-label="Nächste Frage"
+            onClick={next}
+          >
+            →
+          </button>
+        )}
+      </div>
 
       {errors.length > 0 ? (
         <ul className="notice notice--error" role="alert">
@@ -147,9 +235,6 @@ export function FeedbackRespondPage({ feedbackId }: { feedbackId: string }): JSX
         </ul>
       ) : null}
 
-      <button type="button" className="button button--primary button--huge" disabled={busy} onClick={() => void submit()}>
-        {busy ? 'Sende …' : hasOwn ? 'Antwort aktualisieren' : 'Feedback absenden'}
-      </button>
       <p className="field__hint">* Pflichtfrage · Antworten werden anonym gespeichert.</p>
     </main>
   );
