@@ -9,6 +9,7 @@ import {
   type VoterSessionState,
 } from '../../shared/protocol.js';
 import { getOrCreateResponseId } from '../lib/responseId.js';
+import { themeStyle } from '../lib/themeStyle.js';
 import { usePollSocket, type SendMessage } from '../lib/usePollSocket.js';
 
 interface VotePageProps {
@@ -64,6 +65,7 @@ export function VotePage({ sessionId }: VotePageProps): JSX.Element {
   const { status, send } = usePollSocket(handleMessage, handleOpen);
 
   const hasVoted = state?.hasVoted ?? false;
+  const style = themeStyle(state?.theme);
 
   useEffect(() => {
     if (deadlineRef.current === null) return;
@@ -90,7 +92,7 @@ export function VotePage({ sessionId }: VotePageProps): JSX.Element {
 
   if (status === 'connecting' && !state) {
     return (
-      <main className="voter voter--message">
+      <main className="voter voter--message" style={style}>
         <p className="voter__status">Verbinde …</p>
       </main>
     );
@@ -98,7 +100,7 @@ export function VotePage({ sessionId }: VotePageProps): JSX.Element {
 
   if (!state && error) {
     return (
-      <main className="voter voter--message">
+      <main className="voter voter--message" style={style}>
         <h1>Umfrage nicht verfügbar</h1>
         <p>{error}</p>
       </main>
@@ -107,7 +109,7 @@ export function VotePage({ sessionId }: VotePageProps): JSX.Element {
 
   if (hasVoted && !editing) {
     return (
-      <main className="voter voter--message">
+      <main className="voter voter--message" style={style}>
         <div className="voter__done" aria-hidden="true">
           ✓
         </div>
@@ -137,7 +139,7 @@ export function VotePage({ sessionId }: VotePageProps): JSX.Element {
 
   if (state?.full) {
     return (
-      <main className="voter voter--message">
+      <main className="voter voter--message" style={style}>
         <h1>Umfrage geschlossen</h1>
         <p>Es werden keine weiteren Antworten angenommen.</p>
       </main>
@@ -145,7 +147,7 @@ export function VotePage({ sessionId }: VotePageProps): JSX.Element {
   }
 
   return (
-    <main className="voter">
+    <main className="voter" style={style}>
       <h1 className="voter__question">{state?.question ?? 'Umfrage'}</h1>
 
       <div className="voter__value" aria-live="polite">

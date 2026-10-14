@@ -14,6 +14,7 @@ import {
   type VoterSessionState,
 } from '../shared/protocol.js';
 import { computeStats, emptyStats } from '../shared/stats.js';
+import { isDefaultTheme, type Theme } from '../shared/theme.js';
 
 /** Ohne I, O, 0, 1 – damit die Session-ID vorlesbar und abtippbar bleibt. */
 const ID_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -39,6 +40,7 @@ export interface Session {
   createdAt: number;
   lastActivityAt: number;
   resultsVisible: boolean;
+  theme?: Theme;
   /** responseId -> Antwort */
   responses: Map<string, Response>;
 }
@@ -47,6 +49,7 @@ export interface SessionSetup {
   question?: string;
   leftLabel?: string;
   rightLabel?: string;
+  theme?: Theme;
 }
 
 export type SubmitResult =
@@ -74,6 +77,7 @@ export class SessionStore {
       createdAt: timestamp,
       lastActivityAt: timestamp,
       resultsVisible: true,
+      ...(options.theme && !isDefaultTheme(options.theme) ? { theme: options.theme } : {}),
       responses: new Map(),
     };
     this.sessions.set(id, session);
@@ -175,6 +179,7 @@ export class SessionStore {
       rightLabel: session.rightLabel,
       createdAt: session.createdAt,
       resultsVisible: session.resultsVisible,
+      ...(session.theme ? { theme: session.theme } : {}),
       stats: computeStats(valuesOf(session)),
     };
   }
@@ -192,6 +197,7 @@ export class SessionStore {
       value: response?.value ?? null,
       editableForMs: response ? this.remainingEditMs(response) : this.editWindowMs,
       full: session.responses.size >= this.maxResponses,
+      ...(session.theme ? { theme: session.theme } : {}),
     };
   }
 

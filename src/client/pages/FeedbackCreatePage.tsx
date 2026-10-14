@@ -12,7 +12,10 @@ import {
   type Question,
   type QuestionType,
 } from '../../shared/feedback.js';
+import { DEFAULT_THEME, type Theme } from '../../shared/theme.js';
 import { QrCode } from '../components/QrCode.js';
+import { ThemeEditor } from '../components/ThemeEditor.js';
+import { themeStyle } from '../lib/themeStyle.js';
 import { downloadDefinition, importDefinition, type DefinitionFormat } from '../lib/definitionFile.js';
 import { ApiError, feedbackApi, feedbackUrlFor, resultsUrlFor } from '../lib/feedbackApi.js';
 import { fetchPublicOrigin } from '../lib/publicUrl.js';
@@ -24,6 +27,7 @@ type DraftQuestion = Question & { key: string };
 interface Draft {
   title: string;
   description: string;
+  theme: Theme;
   questions: DraftQuestion[];
 }
 
@@ -34,6 +38,7 @@ function draftFrom(definition: FeedbackDefinition): Draft {
   return {
     title: definition.title,
     description: definition.description ?? '',
+    theme: definition.theme ?? { ...DEFAULT_THEME },
     questions: definition.questions.map((q) => ({ ...q, key: nextKey() })),
   };
 }
@@ -42,6 +47,7 @@ function emptyDraft(): Draft {
   return {
     title: '',
     description: '',
+    theme: { ...DEFAULT_THEME },
     questions: [{ ...createQuestion('scale', { title: 'Wie zufrieden warst du insgesamt?', required: true }), key: nextKey() }],
   };
 }
@@ -52,7 +58,11 @@ function loadDraft(): Draft {
     if (stored) {
       const parsed = JSON.parse(stored) as Draft;
       if (Array.isArray(parsed.questions)) {
-        return { ...parsed, questions: parsed.questions.map((q) => ({ ...q, key: nextKey() })) };
+        return {
+          ...parsed,
+          theme: { ...DEFAULT_THEME, ...parsed.theme },
+          questions: parsed.questions.map((q) => ({ ...q, key: nextKey() })),
+        };
       }
     }
   } catch {
@@ -66,6 +76,7 @@ function toDefinitionInput(draft: Draft): unknown {
     version: FEEDBACK_FORMAT_VERSION,
     title: draft.title,
     description: draft.description,
+    theme: draft.theme,
     questions: draft.questions,
   };
 }
@@ -210,7 +221,7 @@ export function FeedbackCreatePage({ edit }: { edit?: EditTarget }): JSX.Element
     const respondUrl = feedbackUrlFor(origin, created.id);
     const resultsUrl = resultsUrlFor(origin, created.id);
     return (
-      <main className="page">
+      <main className="page" style={themeStyle(created.definition.theme)}>
         <h1>Feedback-Bogen erstellt</h1>
         <p className="page__lead">{created.definition.title}</p>
         <div className="created">
@@ -247,7 +258,7 @@ export function FeedbackCreatePage({ edit }: { edit?: EditTarget }): JSX.Element
   }
 
   return (
-    <main className="page">
+    <main className="page" style={themeStyle(draft.theme)}>
       <header className="page__header">
         <h1>{edit ? 'Fragen bearbeiten' : 'Feedback-Bogen erstellen'}</h1>
         <div className="row">
@@ -311,6 +322,10 @@ export function FeedbackCreatePage({ edit }: { edit?: EditTarget }): JSX.Element
             onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
           />
         </label>
+        <div className="field">
+          <span>Farbschema (CI)</span>
+          <ThemeEditor theme={draft.theme} onChange={(theme) => setDraft((d) => ({ ...d, theme }))} />
+        </div>
       </section>
 
       {draft.questions.map((question, index) => (

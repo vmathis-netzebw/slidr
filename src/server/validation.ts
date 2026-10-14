@@ -5,6 +5,7 @@ import {
   SESSION_ID_PATTERN,
   type ClientMessage,
 } from '../shared/protocol.js';
+import { parseTheme } from '../shared/theme.js';
 import { isValidValue } from './sessionStore.js';
 
 export const MAX_MESSAGE_BYTES = 4 * 1024;
@@ -68,14 +69,18 @@ export function parseClientMessage(raw: string): ClientMessage | null {
         ...poleLabelsOf(message),
       };
 
-    case 'presenter:new-session':
+    case 'presenter:new-session': {
       if (!isOptionalQuestion(message.question)) return null;
       if (!isOptionalPoleLabel(message.leftLabel) || !isOptionalPoleLabel(message.rightLabel)) return null;
+      const theme = parseTheme(message.theme);
+      if (theme === null) return null;
       return {
         type: 'presenter:new-session',
         ...(typeof message.question === 'string' ? { question: message.question } : {}),
         ...poleLabelsOf(message),
+        ...(theme ? { theme } : {}),
       };
+    }
 
     case 'presenter:update-question':
       if (!isValidSessionId(message.sessionId)) return null;

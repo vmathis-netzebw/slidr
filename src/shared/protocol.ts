@@ -2,6 +2,7 @@
  * Gemeinsame Typen & Konstanten für Client und Server.
  * Diese Datei darf keine Node- oder DOM-spezifischen APIs verwenden.
  */
+import type { Theme } from './theme.js';
 
 export const VALUE_MIN = 0;
 export const VALUE_MAX = 100;
@@ -46,6 +47,7 @@ export interface PresenterSessionState extends PoleLabels {
   question: string;
   createdAt: number;
   resultsVisible: boolean;
+  theme?: Theme;
   stats: SessionStats;
 }
 
@@ -60,6 +62,7 @@ export interface VoterSessionState extends PoleLabels {
   editableForMs: number;
   /** Session nimmt keine weiteren Antworten an (Limit erreicht). */
   full: boolean;
+  theme?: Theme;
 }
 
 /* ------------------------------- Client -> Server ------------------------------ */
@@ -96,6 +99,7 @@ export interface PresenterNewSessionMessage {
   question?: string;
   leftLabel?: string;
   rightLabel?: string;
+  theme?: Theme;
 }
 
 export interface PresenterSetResultsVisibleMessage {

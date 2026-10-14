@@ -39,6 +39,15 @@ describe('parseDefinition', () => {
     expect(def.questions[4]).toMatchObject({ type: 'text', multiline: false, required: false });
   });
 
+  it('übernimmt CI-Farben, ergänzt fehlende und lehnt ungültige ab', () => {
+    const base = { title: 'T', questions: [{ type: 'text', title: 'X' }] };
+    const ok = parseDefinition({ ...base, theme: { primary: '#E2001A', secondary: '#abc' } });
+    expect(ok.ok && ok.value.theme).toEqual({ primary: '#e2001a', secondary: '#aabbcc', tertiary: '#ffd166' });
+    const defaults = parseDefinition({ ...base, theme: { primary: '#2f6df6' } });
+    expect(defaults.ok && defaults.value.theme).toBeUndefined();
+    expect(parseDefinition({ ...base, theme: { primary: 'red; background:url(x)' } }).ok).toBe(false);
+  });
+
   it('übersteht einen Export/Import-Roundtrip in JSON und YAML', () => {
     const def = definition();
     for (const format of ['json', 'yaml'] as const) {

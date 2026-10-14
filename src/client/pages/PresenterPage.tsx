@@ -7,7 +7,10 @@ import {
   type PresenterSessionState,
   type ServerMessage,
 } from '../../shared/protocol.js';
+import { DEFAULT_THEME, parseTheme, type Theme } from '../../shared/theme.js';
 import { ConnectionBadge } from '../components/ConnectionBadge.js';
+import { ThemeEditor } from '../components/ThemeEditor.js';
+import { themeStyle } from '../lib/themeStyle.js';
 import { DistributionChart } from '../components/DistributionChart.js';
 import { QrCode } from '../components/QrCode.js';
 import { fetchPublicOrigin, voteUrlFor } from '../lib/publicUrl.js';
@@ -16,6 +19,15 @@ import { usePollSocket, type SendMessage } from '../lib/usePollSocket.js';
 const QUESTION_STORAGE_KEY = 'live-poll:last-question';
 const LEFT_LABEL_STORAGE_KEY = 'live-poll:last-left-label';
 const RIGHT_LABEL_STORAGE_KEY = 'live-poll:last-right-label';
+const THEME_STORAGE_KEY = 'live-poll:last-theme';
+
+function readStoredTheme(): Theme {
+  try {
+    return parseTheme(JSON.parse(readStored(THEME_STORAGE_KEY, 'null'))) ?? { ...DEFAULT_THEME };
+  } catch {
+    return { ...DEFAULT_THEME };
+  }
+}
 
 export function PresenterPage(): JSX.Element {
   const [state, setState] = useState<PresenterSessionState | null>(null);
@@ -28,6 +40,7 @@ export function PresenterPage(): JSX.Element {
   const [rightLabel, setRightLabel] = useState<string>(() =>
     readStored(RIGHT_LABEL_STORAGE_KEY, DEFAULT_RIGHT_LABEL),
   );
+  const [theme, setTheme] = useState<Theme>(readStoredTheme);
   const [origin, setOrigin] = useState<string>(() => window.location.origin);
   const [error, setError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
@@ -74,7 +87,8 @@ export function PresenterPage(): JSX.Element {
     persist(QUESTION_STORAGE_KEY, question);
     persist(LEFT_LABEL_STORAGE_KEY, leftLabel);
     persist(RIGHT_LABEL_STORAGE_KEY, rightLabel);
-    send({ type: 'presenter:new-session', question, leftLabel, rightLabel });
+    persist(THEME_STORAGE_KEY, JSON.stringify(theme));
+    send({ type: 'presenter:new-session', question, leftLabel, rightLabel, theme });
     setStarted(true);
   };
 
@@ -85,7 +99,7 @@ export function PresenterPage(): JSX.Element {
 
   if (!started || !state) {
     return (
-      <main className="presenter presenter--setup">
+      <main className="presenter presenter--setup" style={themeStyle(theme)}>
         <header className="presenter__topbar">
           <h1>Live-Umfrage</h1>
           <ConnectionBadge status={status} />
@@ -132,6 +146,9 @@ export function PresenterPage(): JSX.Element {
             </label>
           </div>
 
+          <p className="setup__label">Farbschema (CI)</p>
+          <ThemeEditor theme={theme} onChange={setTheme} />
+
           <button
             type="button"
             className="button button--primary button--large"
@@ -149,7 +166,7 @@ export function PresenterPage(): JSX.Element {
   const stats = state.stats;
 
   return (
-    <main className="presenter">
+    <main className="presenter" style={themeStyle(state.theme)}>
       <header className="presenter__header">
         <h1 className="presenter__question">{state.question}</h1>
         <div className="presenter__count">

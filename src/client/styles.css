@@ -1,6 +1,8 @@
 :root {
   --accent: #2f6df6;
   --accent-dark: #5ac8fa;
+  --on-accent: #fff;
+  --tertiary: #ffd166;
   --dark-bg: #0b0d12;
   --dark-panel: #141822;
   --dark-text: #f5f7fa;
@@ -67,7 +69,7 @@ button {
 .button--primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .button--large {
@@ -448,7 +450,7 @@ button {
 }
 
 .setup .button {
-  color: #fff;
+  color: var(--on-accent);
 }
 
 /* -------------------------------- Chart ---------------------------------- */
@@ -485,7 +487,7 @@ button {
 }
 
 .chart__bar {
-  fill: rgba(90, 200, 250, 0.28);
+  fill: color-mix(in srgb, var(--accent-dark) 28%, transparent);
 }
 
 .chart__curve {
@@ -497,7 +499,7 @@ button {
 }
 
 .chart__marker {
-  stroke: rgba(90, 200, 250, 0.6);
+  stroke: color-mix(in srgb, var(--accent-dark) 60%, transparent);
   stroke-width: 3;
 }
 
@@ -506,7 +508,7 @@ button {
 }
 
 .chart__average {
-  stroke: #ffd166;
+  stroke: var(--tertiary);
   stroke-width: 3;
   stroke-dasharray: 10 8;
 }
@@ -822,7 +824,7 @@ button {
   margin: 0;
   padding: 0.75rem 1rem 0.75rem 1.5rem;
   border-radius: 10px;
-  background: rgba(47, 109, 246, 0.08);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 .notice--error {
@@ -831,7 +833,7 @@ button {
 }
 
 .notice--warn {
-  background: rgba(255, 209, 102, 0.25);
+  background: color-mix(in srgb, var(--tertiary) 25%, transparent);
 }
 
 .created {
@@ -894,6 +896,51 @@ button {
   opacity: 0.5;
 }
 
+.theme-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+}
+
+.theme-editor__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--light-text);
+  cursor: pointer;
+}
+
+.theme-editor__item span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.theme-editor__item code {
+  color: var(--light-muted);
+  font-size: 0.85rem;
+}
+
+.theme-editor__swatch {
+  width: 44px;
+  height: 44px;
+  padding: 2px;
+  border: 1px solid rgba(127, 137, 160, 0.5);
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.theme-editor .link-button {
+  align-self: center;
+}
+
+.presenter .theme-editor__item,
+.presenter .theme-editor__item code {
+  color: var(--dark-muted);
+}
+
 .choices {
   display: flex;
   flex-direction: column;
@@ -935,7 +982,17 @@ button {
 .scale__step--active {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
+}
+
+.choice:has(input:checked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.choice input,
+.check input {
+  accent-color: var(--accent);
 }
 
 .scale__labels {

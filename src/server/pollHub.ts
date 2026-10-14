@@ -1,5 +1,6 @@
 import type { ServerErrorCode, ServerMessage } from '../shared/protocol.js';
 import { RateLimiter } from './rateLimiter.js';
+import type { Theme } from '../shared/theme.js';
 import { SessionStore, type SessionSetup } from './sessionStore.js';
 import { parseClientMessage } from './validation.js';
 
@@ -269,8 +270,10 @@ function setupFrom(message: {
   question?: string;
   leftLabel?: string;
   rightLabel?: string;
+  theme?: Theme;
 }): SessionSetup {
   return {
+    ...(message.theme !== undefined ? { theme: message.theme } : {}),
     ...(message.question !== undefined ? { question: message.question } : {}),
     ...(message.leftLabel !== undefined ? { leftLabel: message.leftLabel } : {}),
     ...(message.rightLabel !== undefined ? { rightLabel: message.rightLabel } : {}),

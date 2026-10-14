@@ -4,6 +4,7 @@
  */
 import { SESSION_ID_PATTERN, VALUE_MAX, VALUE_MIN, type SessionStats } from './protocol.js';
 import { computeStats } from './stats.js';
+import { isDefaultTheme, parseTheme, type Theme } from './theme.js';
 
 export const FEEDBACK_FORMAT_VERSION = 1;
 export const FEEDBACK_ID_PATTERN = SESSION_ID_PATTERN;
@@ -72,6 +73,8 @@ export interface FeedbackDefinition {
   version: typeof FEEDBACK_FORMAT_VERSION;
   title: string;
   description?: string;
+  /** CI-Farben; fehlt = Standardfarben. */
+  theme?: Theme;
   questions: Question[];
 }
 
@@ -157,6 +160,8 @@ export function parseDefinition(
   const title = singleLine(input.title, TITLE_MAX_LENGTH);
   if (!title) errors.push('Titel fehlt.');
   const description = multiLine(input.description, DESCRIPTION_MAX_LENGTH);
+  const theme = parseTheme(input.theme);
+  if (theme === null) errors.push('Farbschema: Farben müssen als Hex-Wert angegeben werden (z.B. "#2f6df6").');
 
   const rawQuestions = input.questions;
   const questions: Question[] = [];
@@ -193,6 +198,7 @@ export function parseDefinition(
       version: FEEDBACK_FORMAT_VERSION,
       title,
       ...(description ? { description } : {}),
+      ...(theme && !isDefaultTheme(theme) ? { theme } : {}),
       questions,
     },
   };

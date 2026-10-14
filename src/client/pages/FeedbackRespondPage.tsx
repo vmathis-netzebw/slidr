@@ -10,6 +10,7 @@ import {
 } from '../../shared/feedback.js';
 import { ApiError, feedbackApi } from '../lib/feedbackApi.js';
 import { getOrCreateResponseId } from '../lib/responseId.js';
+import { themeStyle } from '../lib/themeStyle.js';
 
 export function FeedbackRespondPage({ feedbackId }: { feedbackId: string }): JSX.Element {
   // Pro Gerät eine Antwort je Bogen; dieselbe ID erlaubt späteres Ändern.
@@ -77,9 +78,11 @@ export function FeedbackRespondPage({ feedbackId }: { feedbackId: string }): JSX
     }
   };
 
+  const style = themeStyle(feedback?.definition.theme);
+
   if (done) {
     return (
-      <main className="voter voter--message">
+      <main className="voter voter--message" style={style}>
         <div className="voter__done" aria-hidden="true">
           ✓
         </div>
@@ -95,7 +98,7 @@ export function FeedbackRespondPage({ feedbackId }: { feedbackId: string }): JSX
 
   if (loadError) {
     return (
-      <main className="voter voter--message">
+      <main className="voter voter--message" style={style}>
         <h1>Feedback nicht verfügbar</h1>
         <p>{loadError}</p>
       </main>
@@ -104,7 +107,7 @@ export function FeedbackRespondPage({ feedbackId }: { feedbackId: string }): JSX
 
   if (!feedback) {
     return (
-      <main className="voter voter--message">
+      <main className="voter voter--message" style={style}>
         <p className="voter__status">Lade …</p>
       </main>
     );
@@ -112,7 +115,7 @@ export function FeedbackRespondPage({ feedbackId }: { feedbackId: string }): JSX
 
   if (feedback.closed) {
     return (
-      <main className="voter voter--message">
+      <main className="voter voter--message" style={style}>
         <h1>{feedback.definition.title}</h1>
         <p>Dieser Feedback-Bogen ist geschlossen.</p>
       </main>
@@ -121,7 +124,7 @@ export function FeedbackRespondPage({ feedbackId }: { feedbackId: string }): JSX
 
   const { definition } = feedback;
   return (
-    <main className="page page--form">
+    <main className="page page--form" style={style}>
       <h1>{definition.title}</h1>
       {definition.description ? <p className="page__lead page__pre">{definition.description}</p> : null}
 

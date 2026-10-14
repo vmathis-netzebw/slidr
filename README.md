@@ -77,12 +77,12 @@ docker compose up --build
 ```
 
 Die Feedback-Datenbank liegt per Bind-Mount in `./data/feedback.sqlite` auf dem Host und bleibt
-bei Rebuilds und auch bei `docker compose down -v` erhalten. Der Container läuft mit
-`UID`/`GID` des Hosts (Standard 1000), damit er in `./data` schreiben darf.
+bei Rebuilds und auch bei `docker compose down -v` erhalten.
 
 Das Image ist ein Multi-Stage-Build: Der Build-Stage kompiliert Client und Server, der Runtime-Stage
-enthält nur Produktionsabhängigkeiten und läuft als unprivilegierter Benutzer `node`. Ein
-Healthcheck fragt `/healthz` ab.
+enthält nur Produktionsabhängigkeiten. Das Entrypoint-Skript übergibt beim Start `/app/data` an den
+Benutzer `node` und startet den Server dann unprivilegiert als `node`. Dadurch funktionieren sowohl
+Named Volumes als auch Bind-Mounts, deren Host-Ordner root gehört. Ein Healthcheck fragt `/healthz` ab.
 
 ## 4. Deployment in Coolify
 
@@ -94,7 +94,9 @@ Healthcheck fragt `/healthz` ab.
 5. Domain eintragen, z.B. `https://umfrage.example.de`. Coolify beantragt automatisch ein
    Let's-Encrypt-Zertifikat.
 6. Optional die Environment-Variable `PUBLIC_URL=https://umfrage.example.de` setzen (siehe unten).
-7. **Deploy** klicken.
+7. Unter **Storages** ein Persistent Volume (oder Directory Mount) auf `/app/data` anlegen,
+   sonst geht die Feedback-Datenbank beim Redeploy verloren.
+8. **Deploy** klicken.
 
 Ein Healthcheck-Endpunkt steht unter `/healthz` bereit und liefert
 `{"ok":true,"sessions":n,"connections":n}`.
@@ -121,10 +123,12 @@ Vorlage: [.env.example](.env.example). Es werden keine Secrets benötigt.
 1. `https://umfrage.example.de/presenter` auf dem Präsentationsrechner öffnen.
 2. Frage eintragen, z.B. *"Entwickeln oder Customizen?"*.
 3. Die beiden Slider-Pole festlegen: links = Wert 0, rechts = Wert 100.
-4. **Neue Umfrage starten** klicken. Es entsteht eine Session mit zufälliger ID.
-5. Den Bildschirm auf den Beamer legen. Der QR-Code wird groß angezeigt, darunter die URL als Text
+4. Optional unter **Farbschema (CI)** Primär-, Sekundär- und Tertiärfarbe wählen (wird im Browser
+   für die nächste Umfrage gemerkt und auch auf den Abstimm-Seiten verwendet).
+5. **Neue Umfrage starten** klicken. Es entsteht eine Session mit zufälliger ID.
+6. Den Bildschirm auf den Beamer legen. Der QR-Code wird groß angezeigt, darunter die URL als Text
    und der Session-Code zum Abtippen.
-6. Das Publikum scannt und stimmt ab. Antwortzahl, Kurve, Durchschnitt und Median aktualisieren sich
+7. Das Publikum scannt und stimmt ab. Antwortzahl, Kurve, Durchschnitt und Median aktualisieren sich
    ohne Reload.
 
 Steuerung während des Vortrags:
@@ -193,6 +197,19 @@ questions:
 standardmäßig die aktuellen Fragen mit allen Antworten, deren Frage in Typ und Optionen gleich
 geblieben ist (reine Textkorrekturen sind unkritisch). Einzelne Versionen lassen sich separat
 auswerten. Gelöschte Frage-IDs werden nie wiederverwendet.
+
+**Farbschema (CI):** Im Editor lassen sich Primär-, Sekundär- und Tertiärfarbe festlegen, die für
+Teilnehmer- und Ergebnisseite gelten. Im Import/Export als `theme` mit Hex-Werten:
+
+```yaml
+theme:
+  primary: "#e2001a"
+  secondary: "#000099"
+  tertiary: "#ffcc00"
+```
+
+Fehlende Farben werden mit den Standardfarben ergänzt. Die Textfarbe auf der Primärfarbe wird
+automatisch für ausreichenden Kontrast gewählt.
 
 **Eine Antwort pro Gerät:** Jedes Gerät bekommt pro Bogen eine zufällige, anonyme ID im
 localStorage. Darüber gibt es genau eine Antwort, die später geändert werden kann („Antwort

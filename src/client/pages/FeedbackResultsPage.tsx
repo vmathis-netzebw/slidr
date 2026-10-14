@@ -11,6 +11,7 @@ import { QrCode } from '../components/QrCode.js';
 import { downloadDefinition, downloadText, slugify } from '../lib/definitionFile.js';
 import { ApiError, feedbackApi, feedbackUrlFor } from '../lib/feedbackApi.js';
 import { fetchPublicOrigin } from '../lib/publicUrl.js';
+import { themeStyle } from '../lib/themeStyle.js';
 import { FeedbackCreatePage } from './FeedbackCreatePage.js';
 
 export function FeedbackResultsPage({ feedbackId }: { feedbackId: string }): JSX.Element {
@@ -125,7 +126,7 @@ export function FeedbackResultsPage({ feedbackId }: { feedbackId: string }): JSX
   const fileBase = `${slugify(definition.title)}-antworten`;
 
   return (
-    <main className="page">
+    <main className="page" style={themeStyle(definition.theme)}>
       <header className="page__header">
         <div>
           <h1>{definition.title}</h1>
