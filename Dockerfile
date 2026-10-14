@@ -23,14 +23,18 @@ ENV PORT=3000
 ENV HOST=0.0.0.0
 ENV DATA_DIR=/app/data
 
+RUN apk add --no-cache su-exec
+
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY package.json ./
+COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 RUN mkdir -p /app/data && chown node:node /app/data
 VOLUME ["/app/data"]
 
-USER node
+# Startet als root, das Entrypoint-Skript wechselt nach dem chown auf "node".
+ENTRYPOINT ["docker-entrypoint.sh"]
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

@@ -13,8 +13,6 @@ services:
       TRUST_PROXY: "false"
     ports:
       - "3000:3000"
-    # Läuft mit der UID des Host-Users, damit ./data beschreibbar ist.
-    user: "${UID:-1000}:${GID:-1000}"
     volumes:
       # Bind-Mount: feedback.sqlite überlebt Rebuilds und auch `docker compose down -v`.
       - ./data:/app/data
